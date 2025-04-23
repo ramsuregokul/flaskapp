@@ -12,8 +12,7 @@ class Todo(db.Model):
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return '<Task %r>' % self.id
-
+        return f'<Task {self.id}>'
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
@@ -27,11 +26,9 @@ def index():
             return redirect('/')
         except:
             return 'There was an issue adding your task'
-
     else:
         tasks = Todo.query.order_by(Todo.date_created).all()
         return render_template('index.html', tasks=tasks)
-
 
 @app.route('/delete/<int:id>')
 def delete(id):
@@ -56,14 +53,11 @@ def update(id):
             return redirect('/')
         except:
             return 'There was an issue updating your task'
-
     else:
         return render_template('update.html', task=task)
 
-
+# ✅ This block ensures the database & tables are created automatically
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()  # Create tables if they don't exist
     app.run(debug=True)
-
-from app import db, app
-with app.app_context():
-    db.create_all()
