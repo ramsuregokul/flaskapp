@@ -1,39 +1,33 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<title>Task Master</title>
+<title>Chat Room</title>
 {% endblock %}
 
 {% block body %}
 <div class="content">
-    <h1 style="text-align: center">Task Master</h1>
-    {% if tasks|length < 1 %}
-    <h4 style="text-align: center">There are no tasks. Create one below!</h4>
-    {% else %}
-    <table>
-        <tr>
-            <th>Task</th>
-            <th>Added</th>
-            <th>Actions</th>
-        </tr>
-        {% for task in tasks %}
-            <tr>
-                <td>{{ task.content }}</td>
-                <td>{{ task.date_created.date() }}</td>
-                <td>
-                    <a href="/delete/{{task.id}}">Delete</a>
+    <h1 style="text-align: center;">Welcome, {{ session['username'] }}!</h1>
+    <a href="/logout" style="float: right;">Logout</a>
+
+    <div class="chatbox">
+        {% for msg in messages %}
+            <p>
+                <strong>{{ msg.user.username }}:</strong> {{ msg.content }}
+                <small style="color: gray;">({{ msg.date_created.strftime('%Y-%m-%d %H:%M') }})</small>
+                
+                {% if msg.user_id == session['user_id'] %}
                     <br>
-                    <a href="/update/{{task.id}}">Update</a>
-                </td>
-            </tr>
+                    <a href="/update/{{ msg.id }}">Update</a> | 
+                    <a href="/delete/{{ msg.id }}">Delete</a>
+                {% endif %}
+            </p>
         {% endfor %}
-    </table>
-    {% endif %}
+    </div>
 
     <div class="form">
-        <form action="/" method="POST">
-            <input type="text" name="content" id="content">
-            <input type="submit" value="Add Task">
+        <form action="/chat" method="POST">
+            <input type="text" name="content" placeholder="Type your message..." required>
+            <input type="submit" value="Send">
         </form>
     </div>
 </div>
