@@ -31,25 +31,24 @@ def home():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password'].strip()
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
 
-        # Check if fields are empty
         if not username or not password:
             return 'Username and password cannot be empty'
 
-        # Check if username already exists
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
+        user_exists = User.query.filter_by(username=username).first()
+        if user_exists:
             return 'User already exists'
 
         new_user = User(username=username, password=password)
+
         try:
             db.session.add(new_user)
             db.session.commit()
             return redirect('/login')
-        except:
-            return 'There was an issue creating your account'
+        except Exception as e:
+            return f'Error: {str(e)}'
 
     return render_template('register.html')
 
