@@ -9,28 +9,25 @@ body, html {
     width: 400px;
 }
 
-table, td, th {
+.chatbox {
     border: 1px solid #aaa;
-}
-
-table {
-    border-collapse: collapse;
-    width: 100%;
-}
-
-th {
-    height: 30px;
-}
-
-td {
-    text-align: center;
-    padding: 5px;
+    height: 300px;
+    overflow-y: scroll;
+    padding: 10px;
+    background-color: white;
+    margin-bottom: 20px;
 }
 
 .form {
     margin-top: 20px;
 }
 
-#content {
+input[type="text"], input[type="password"] {
     width: 70%;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+input[type="submit"] {
+    padding: 5px 10px;
 }
