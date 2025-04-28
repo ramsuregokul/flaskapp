@@ -31,19 +31,26 @@ def home():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        
-        hashed_pw = generate_password_hash(password)
-        new_user = User(username=username, password=hashed_pw)
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
 
+        # Check if fields are empty
+        if not username or not password:
+            return 'Username and password cannot be empty'
+
+        # Check if username already exists
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return 'User already exists'
+
+        new_user = User(username=username, password=password)
         try:
             db.session.add(new_user)
             db.session.commit()
             return redirect('/login')
         except:
-            return 'Username already exists or there was an error!'
-    
+            return 'There was an issue creating your account'
+
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
