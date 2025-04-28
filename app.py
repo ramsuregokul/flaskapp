@@ -5,7 +5,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
-app.secret_key = 'your_secret_key'  # important for sessions
+app.secret_key = 'your_secret_key'
 db = SQLAlchemy(app)
 
 # Database Models
@@ -79,6 +79,41 @@ def chat():
     else:
         messages = Message.query.order_by(Message.date_created).all()
         return render_template('chat.html', messages=messages)
+
+@app.route('/update/<int:id>', methods=['GET', 'POST'])
+def update(id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    msg = Message.query.get_or_404(id)
+    if msg.user_id != session['user_id']:
+        return 'You are not authorized to update this message.'
+
+    if request.method == 'POST':
+        msg.content = request.form['content']
+        try:
+            db.session.commit()
+            return redirect('/chat')
+        except:
+            return 'There was an issue updating your message'
+    else:
+        return render_template('update.html', msg=msg)
+
+@app.route('/delete/<int:id>')
+def delete(id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    msg_to_delete = Message.query.get_or_404(id)
+    if msg_to_delete.user_id != session['user_id']:
+        return 'You are not authorized to delete this message.'
+
+    try:
+        db.session.delete(msg_to_delete)
+        db.session.commit()
+        return redirect('/chat')
+    except:
+        return 'There was a problem deleting your message'
 
 @app.route('/logout')
 def logout():
