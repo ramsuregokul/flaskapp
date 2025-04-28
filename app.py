@@ -1,63 +1,91 @@
-from flask import Flask, render_template, url_for, request, redirect
+from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
+app.secret_key = 'your_secret_key'  # important for sessions
 db = SQLAlchemy(app)
 
-class Todo(db.Model):
+# Database Models
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(100), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def __repr__(self):
-        return f'<Task {self.id}>'
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.String(500), nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
-@app.route('/', methods=['POST', 'GET'])
-def index():
+    user = db.relationship('User')
+
+# Routes
+@app.route('/')
+def home():
+    return redirect('/login')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
     if request.method == 'POST':
-        task_content = request.form['content']
-        new_task = Todo(content=task_content)
+        username = request.form['username']
+        password = request.form['password']
+        
+        hashed_pw = generate_password_hash(password)
+        new_user = User(username=username, password=hashed_pw)
 
         try:
-            db.session.add(new_task)
+            db.session.add(new_user)
             db.session.commit()
-            return redirect('/')
+            return redirect('/login')
         except:
-            return 'There was an issue adding your task'
-    else:
-        tasks = Todo.query.order_by(Todo.date_created).all()
-        return render_template('index.html', tasks=tasks)
+            return 'Username already exists or there was an error!'
+    
+    return render_template('register.html')
 
-@app.route('/delete/<int:id>')
-def delete(id):
-    task_to_delete = Todo.query.get_or_404(id)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
 
-    try:
-        db.session.delete(task_to_delete)
-        db.session.commit()
-        return redirect('/')
-    except:
-        return 'There was a problem deleting that task'
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            return redirect('/chat')
+        else:
+            return 'Invalid Credentials!'
+    return render_template('login.html')
 
-@app.route('/update/<int:id>', methods=['GET', 'POST'])
-def update(id):
-    task = Todo.query.get_or_404(id)
+@app.route('/chat', methods=['GET', 'POST'])
+def chat():
+    if 'user_id' not in session:
+        return redirect('/login')
 
     if request.method == 'POST':
-        task.content = request.form['content']
+        content = request.form['content']
+        new_message = Message(user_id=session['user_id'], content=content)
 
         try:
+            db.session.add(new_message)
             db.session.commit()
-            return redirect('/')
+            return redirect('/chat')
         except:
-            return 'There was an issue updating your task'
+            return 'There was an issue sending your message'
     else:
-        return render_template('update.html', task=task)
+        messages = Message.query.order_by(Message.date_created).all()
+        return render_template('chat.html', messages=messages)
 
-with app.app_context():
-    db.create_all()
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
